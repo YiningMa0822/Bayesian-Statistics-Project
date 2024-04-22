@@ -64,8 +64,8 @@ cov_data <- cov_encode_data[-highly_correlated, -highly_correlated]
 # Convert cov_encode_data to a matrix
 cov_data <- as.matrix(cov_data)
 dim(cov_data)
-# factanal function uses the MLE method:
-(fit = factanal(factors = 2, covmat = cov_data))
+# # factanal function uses the MLE method:
+# (fit = factanal(factors = 2, covmat = cov_data))
 
 # Try a different factor analysis method
 fit <- psych::fa(r = cov_data, nfactors = 3)
