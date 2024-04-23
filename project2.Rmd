@@ -1,0 +1,76 @@
+---
+title: "5224projectalter"
+author: "Yuhan Liu; Yining MA"
+date: "2024-04-22"
+output: pdf_document
+---
+
+
+```{r}
+#another prior
+library(MASS)   # for mvrnorm function
+library(MCMCpack)  # for rinvgamma function
+
+# Assuming model.matrix and Y are already defined
+
+# Set new prior parameters
+beta0 <- rep(0, p)            # Prior mean for beta coefficients
+sigma2_beta0 <- diag(25, p)   # Prior variance for beta coefficients (more informative)
+nu0 <- 3                      # Degrees of freedom for sigma^2 prior (more informative)
+s20 <- var(Y) / 2             # Scale for sigma^2 prior, assuming it could be around half of the observed variance
+
+# Initial values for parameters
+beta <- rep(0, p)  # starting values for beta coefficients
+sigma2 <- var(Y)   # starting value for sigma^2
+
+# Storage for samples
+samples_beta <- matrix(NA, nrow = 5000, ncol = p)
+samples_sigma2 <- numeric(5000)
+
+# Gibbs sampler
+for (s in 1:5000) {
+  # Update beta
+  Sigma_beta <- solve(solve(sigma2_beta0) + (t(model.matrix) %*% model.matrix) / sigma2)
+  mu_beta <- Sigma_beta %*% (solve(sigma2_beta0) %*% beta0 + (t(model.matrix) %*% Y) / sigma2)
+  beta <- mvrnorm(1, mu_beta, Sigma_beta)
+  
+  # Update sigma2
+  residuals <- Y - model.matrix %*% beta
+  nu <- nu0 + length(Y)
+  sum_sq <- s20 + sum(residuals^2)
+  sigma2 <- rinvgamma(1, nu/2, sum_sq/2)
+  
+  # Store samples
+  samples_beta[s, ] <- beta
+  samples_sigma2[s] <- sigma2
+}
+
+# Plot to check convergence
+par(mfrow = c(1, 2))
+plot(samples_beta[, 1], type = 'l', main = "Trace for beta[1]")
+plot(samples_sigma2, type = 'l', main = "Trace for sigma^2")
+```
+```{r}
+# Convert samples to mcmc objects for diagnostics
+mcmc_beta <- mcmc(samples_beta)
+mcmc_sigma2 <- mcmc(samples_sigma2)
+
+# Plot diagnostics
+par(mfrow = c(2, 2))
+plot(autocorr.diag(mcmc_beta), main = "Autocorrelation of Beta")
+plot(autocorr.diag(mcmc_sigma2), main = "Autocorrelation of Sigma2")
+```
+```{r}
+effectiveSize(mcmc_beta)  # Effective sample sizes
+effectiveSize(mcmc_sigma2)
+
+# Posterior Summaries
+summary(mcmc_beta)
+summary(mcmc_sigma2)
+```
+```{r}
+# Density Plots
+plot(density(mcmc_beta[,1]), main = "Density of Beta[1]")
+plot(density(mcmc_sigma2), main = "Density of Sigma^2")
+
+```

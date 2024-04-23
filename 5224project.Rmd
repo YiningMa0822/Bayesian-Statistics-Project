@@ -1,0 +1,159 @@
+---
+title: "5224proj"
+author: "Yuhan Liu; Yining MA"
+date: "2024-04-18"
+output: pdf_document
+---
+
+
+
+```{r,warning=FALSE}
+set.seed(1)
+library(MASS) 
+library(MCMCpack) 
+
+data <- read.csv("stu_dat.csv")
+
+# One-hot encode Mjob and Fjob
+x1 <- data[which()] # Mjob == health ...
+data$Mjob <- as.factor(data$Mjob)
+data$Fjob <- as.factor(data$Fjob)
+dim(model.matrix(~Mjob+Fjob-1, data))
+model.matrix <- model.matrix(~ Mjob + Fjob -1, data)
+dim(model.matrix)
+
+# Response variable
+Y <- data$sum
+
+# Number of iterations
+S <- 5000
+n <- length(Y)
+p <- ncol(model.matrix)
+
+# non informative Prior
+mu0 <- rep(0, p)
+sigma2_mu0 <- diag(100, p)
+nu0 <- 1
+sigma2_0 <- 100
+
+# Initial values
+sigma2 <- var(Y)
+beta <- solve(t(model.matrix) %*% model.matrix) %*% t(model.matrix) %*% Y
+
+# Storage for samples
+samples_beta <- matrix(NA, nrow = S, ncol = p)
+samples_sigma2 <- numeric(S)
+dim(model.matrix)
+
+```
+
+```{r}
+set.seed(2)
+# Gibbs sampler
+for (s in 1:S) {
+  # Update beta
+  Sigma_beta <- solve(solve(sigma2_mu0) + (t(model.matrix) %*% model.matrix) / sigma2)
+  mu_beta <- Sigma_beta %*% (solve(sigma2_mu0) %*% mu0 + (t(model.matrix) %*% Y) / sigma2)
+  beta <- mvrnorm(1, mu_beta, Sigma_beta)
+  
+  # Update sigma2
+  residuals <- Y - model.matrix %*% beta
+  nu <- nu0 + n
+  sum_sq <- sigma2_0 + sum(residuals^2)
+  sigma2 <- rinvgamma(1, nu/2, sum_sq/2)
+  
+  # Store samples
+  samples_beta[s, ] <- beta
+  samples_sigma2[s] <- sigma2
+}
+
+# Plot to check convergence
+par(mfrow = c(1, 2))
+plot(samples_beta[, 1], type = 'l', main = "Trace for beta[1]")
+plot(samples_sigma2, type = 'l', main = "Trace for sigma^2")
+
+```
+
+```{r}
+set.seed(3)
+# Convert samples to mcmc objects for diagnostics
+mcmc_beta <- mcmc(samples_beta)
+mcmc_sigma2 <- mcmc(samples_sigma2)
+
+# Plot diagnostics
+par(mfrow = c(2, 2))
+plot(autocorr.diag(mcmc_beta), main = "Autocorrelation of Beta")
+plot(autocorr.diag(mcmc_sigma2), main = "Autocorrelation of Sigma2")
+acf(mcmc_sigma2)
+acf(mcmc_beta[1])
+```
+
+```{r}
+set.seed(4)
+effectiveSize(mcmc_beta)  # Effective sample sizes
+effectiveSize(mcmc_sigma2)
+
+# Posterior Summaries
+summary(mcmc_beta)
+summary(mcmc_sigma2)
+```
+
+```{r}
+set.seed(5)
+# Density Plots
+plot(density(mcmc_beta[,1]), main = "Density of Beta[1]")
+plot(density(mcmc_sigma2), main = "Density of Sigma^2")
+```
+```{r}
+library(rstan)
+
+# Assume 'model.matrix' contains the one-hot encoded 'Mjob' and 'Fjob' and 'Y' is your response variable
+
+# Write the Stan model for multiple regression
+stan_code <- "
+data {
+  int<lower=0> N;       // Total number of observations
+  int<lower=0> K;       // Number of predictors
+  matrix[N, K] X;       // Predictor matrix
+  vector[N] Y;          // Response variable
+}
+
+parameters {
+  real alpha;                // Intercept
+  vector[K] beta;            // Coefficients for predictors
+  real<lower=0> sigma;       // Standard deviation of errors
+}
+
+model {
+  // Priors
+  alpha ~ normal(0, 10);     // Prior for the intercept
+  beta ~ normal(0, 5);       // Prior for the coefficients, assuming they are likely small
+  sigma ~ cauchy(0, 2.5);    // Prior for the sigma, using a half-Cauchy distribution
+
+  // Likelihood
+  Y ~ normal(X * beta + alpha, sigma);
+}
+"
+
+# Convert the model.matrix and Y to the format expected by Stan
+data_for_stan <- list(N = nrow(model.matrix), K = ncol(model.matrix), X = model.matrix, Y = Y)
+
+# Compile the Stan model
+stan_model <- stan_model(model_code = stan_code)
+
+# Fit the model with MCMC
+fit <- sampling(stan_model, data = data_for_stan, iter = 5000, chains = 4)
+
+# Print the fit and summary
+print(fit)
+params <- extract(fit)
+hist(params$alpha)
+hist(params$beta)
+quantile(params$beta, c(0.025, 0.5, 0.975))
+
+# You may also want to save the Stan code to a .stan file if you plan to reuse it
+writeLines(stan_code, "multiple_regression.stan")
+
+
+```
+
