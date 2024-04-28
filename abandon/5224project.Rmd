@@ -11,6 +11,7 @@ output: pdf_document
 set.seed(1)
 library(MASS) 
 library(MCMCpack) 
+setwd("C:/Users/Mayin/Documents/1GRADUATE/1. Study/2. 24Spring/5224 Bayesian Statistics/5224_Project/Bayesian-Statistics-Project/")
 
 data <- read.csv("stu_dat.csv")
 
