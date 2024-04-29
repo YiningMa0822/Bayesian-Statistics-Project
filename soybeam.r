@@ -10,10 +10,11 @@ min_max_normalize <- function(x) {
 }
 
 # Apply the function to each numeric column in the data frame
-data<- data.frame(lapply(data, function(x) {
+data<- data.frame(lapply(data_ori, function(x) {
   if (is.numeric(x)) min_max_normalize(x) else x
 }))
-
+# cor of NGP and MHG
+cor(data$NGP, data$MHG)
 ########################
 # OLS
 ########################
@@ -69,7 +70,6 @@ library(MCMCpack)
 theta  <- colMeans(ols_estimate[ , 2:6])
 Sigma <- cov(ols_estimate[ , 2:6])
 sigma2 <- mean(unlist(res_var))
-
 
 # number of groups
 m <- 40
@@ -240,6 +240,10 @@ Gamma0_i <- S0_i <- Sigma
 eta0_i <- 2*p
 nu0_i <- 2
 sigma02_i <- sigma2
+
+# initial points
+mu_i <- c(rep(0, p))
+S_i <- diag(p)
 beta1_i <- ols_estimate[ , "beta_0"]
 beta2_i <- ols_estimate[ , "beta_NGP"]
 beta3_i <- ols_estimate[ , "beta_MHG"]
@@ -556,46 +560,79 @@ grid.arrange(grobs = plots, nrow = 5)
 
 
 #####################################
-# Choose best value
+# Relation between NGP and MHG (over randam cultivar)
 ####################################
 ## grid
 NGP_ori_range <- range(data_ori$NGP)
 MHG_ori_range <- range(data_ori$MHG)
+GY_ori_range <- range(data_ori$GY)
 
-NGP_grid <- seq(0, 1, length.out = 100)
-MHG_grid <- seq(0, 1, length.out = 100)
+NGP_grid <- seq(0, 1, 0.01)
+MHG_grid <- seq(0, 1, 0.01)
+
 # weak informative prior
 pred_w <- data.frame()
-for (i in 1:m){
-  print(i)
-  beta_w <- bayes_estimate_w[i, ]
-  for (j in 1:100){
-    for (k in 1:100){
+for (j in 1:100){
+  print(j)
+  for (k in 1:100){
+    for (i in 1:m){
+      beta_w <- bayes_estimate_w[i, ]
+      pred_each <- NULL
       pred <- beta_w$beta_0 + beta_w$beta_NGP * NGP_grid[j] + beta_w$beta_MHG * MHG_grid[k] + beta_w$beta_NGP_MHG * NGP_grid[j] * MHG_grid[k] + beta_w$beta_MHG2 * MHG_grid[k]^2
-      pred_w <- rbind(pred_w, data.frame(NGP = NGP_grid[j], MHG = MHG_grid[k], prediction = pred))
+      pred_each <- c(pred_each, pred)
     }
+    pred_w <- rbind(pred_w, data.frame(NGP = NGP_grid[j], MHG = MHG_grid[k], predict_mean = mean(pred_each)))
   }
 }
-head(pred_w)
-pred_w[which.max(pred_w$prediction),]
-# Find the row with the maximum prediction
-max_pred_row <- pred_w[which.max(pred_w$prediction), ]
-
-# Print the NGP and MHG for this row
-max_pred_row$NGP
-max_pred_row$MHG
-max_index <- which.max(mean_yield$yield)
-density_max <- mean_yield$density[max_index]
-cat(" x max maximizes expeceted yield is ", density_max)
+## de-normalize
+pred_w$NGP_ori <- pred_w$NGP * (NGP_ori_range[2] - NGP_ori_range[1]) + NGP_ori_range[1]
+pred_w$MHG_ori <- pred_w$MHG * (MHG_ori_range[2] - MHG_ori_range[1]) + MHG_ori_range[1]
+pred_w$predict_mean_ori <- pred_w$predict_mean * (GY_ori_range[2] - GY_ori_range[1]) + GY_ori_range[1]
+pred_w
+## 3D plot
+library(rgl)
+par(mfrow = c(1, 1))
+blue_palette <- colorRampPalette(c("lightblue", "darkblue")) # color palette
+with(pred_w, plot3d(NGP, MHG, predict_mean, xlab = "NGP", ylab = "MHG", zlab = "Predict Mean", col = blue_palette(length(predict_mean)), alpha = 0.5))
+## plot: contour + heatmap
+ggplot(pred_w, aes(x = NGP_ori, y = MHG_ori, z = predict_mean_ori, fill = predict_mean_ori)) +
+  geom_tile() +
+  geom_contour(aes(colour = after_stat(level)), bins = 10) +
+  scale_fill_gradientn(colors = blue_palette(100)) +
+  labs(x = "NGP", y = "MHG", fill = "Predict Mean") +
+  ggtitle("Predict Mean over NGP and MHG (weak informative prior)") +
+  theme_minimal()
+## Find the row with the maximum prediction
+pred_w[which.max(pred_w$predict_mean),]
 
 # informative prior
 pred_i <- data.frame()
-for (i in 1:m){
-  beta_i <- bayes_estimate_i[i, ]
-  for (j in 1:100){
-    for (k in 1:100){
+for (j in 1:100){
+  print(j)
+  for (k in 1:100){
+    for (i in 1:m){
+      beta_i <- bayes_estimate_i[i, ]
+      pred_each <- NULL
       pred <- beta_i$beta_0 + beta_i$beta_NGP * NGP_grid[j] + beta_i$beta_MHG * MHG_grid[k] + beta_i$beta_NGP_MHG * NGP_grid[j] * MHG_grid[k] + beta_i$beta_MHG2 * MHG_grid[k]^2
-      pred_i <- rbind(pred_i, data.frame(cultivar = i, NGP = NGP_grid[j], MHG = MHG_grid[k], prediction = pred))
+      pred_each <- c(pred_each, pred)
     }
+    pred_i <- rbind(pred_i, data.frame(NGP = NGP_grid[j], MHG = MHG_grid[k], predict_mean = mean(pred_each)))
   }
 }
+## de-normalize
+pred_i$NGP_ori <- pred_i$NGP * (NGP_ori_range[2] - NGP_ori_range[1]) + NGP_ori_range[1]
+pred_i$MHG_ori <- pred_i$MHG * (MHG_ori_range[2] - MHG_ori_range[1]) + MHG_ori_range[1]
+pred_i$predict_mean_ori <- pred_i$predict_mean * (GY_ori_range[2] - GY_ori_range[1]) + GY_ori_range[1]
+pred_i
+## 3D plot
+with(pred_i, plot3d(NGP, MHG, predict_mean, xlab = "NGP", ylab = "MHG", zlab = "Predict Mean", col = blue_palette(length(predict_mean)), alpha = 0.5))
+## plot: contour + heatmap
+ggplot(pred_i, aes(x = NGP_ori, y = MHG_ori, z = predict_mean_ori, fill = predict_mean_ori)) +
+  geom_tile() +
+  geom_contour(aes(colour = after_stat(level)), bins = 10) +
+  scale_fill_gradientn(colors = blue_palette(100)) +
+  labs(x = "NGP", y = "MHG", fill = "Predict Mean") +
+  ggtitle("Predict Mean over NGP and MHG (informative prior)") +
+  theme_minimal()
+## Find the row with the maximum prediction
+pred_i[which.max(pred_i$predict_mean),]
