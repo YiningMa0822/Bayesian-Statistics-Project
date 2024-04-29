@@ -497,8 +497,7 @@ for (i in 1:NN) {
 ## posterior
 Sigma_post <- SIGMA_w
 
-
-# Create an empty list to store the plots
+## plot
 plots <- list()
 p <- 5
 for (i in 1:p){
@@ -507,11 +506,9 @@ for (i in 1:p){
     sigma_prior <- Sigma_prior[, index]
     sigma_post <- Sigma_post[index, ]
     
-    # Create a data frame for ggplot
     df <- data.frame(value = c(sigma_prior, sigma_post),
                      group = rep(c("Prior", "Post"), each = length(sigma_prior)))
     
-    # Create the density plot
     pp <- ggplot(df, aes(x = value, fill = group)) +
       geom_density(alpha = 0.4) +
       labs(x = paste("sigma_",i,j), y = "Density", 
@@ -520,12 +517,9 @@ for (i in 1:p){
       theme_minimal() +
       theme(legend.position = "none")
     
-    # Add the plot to the list
     plots[[index]] <- pp
   }
 }
-
-# Print the plots
 grid.arrange(grobs = plots, nrow = 5)
 
 ## informative
@@ -536,8 +530,7 @@ for (i in 1:NN) {
 }
 ## posterior
 Sigma_post_i <- SIGMA_i
-
-# Create an empty list to store the plots
+## plot
 plots <- list()
 p <- 5
 for (i in 1:p){
@@ -546,11 +539,9 @@ for (i in 1:p){
     sigma_prior_i <- Sigma_prior_i[, index]
     sigma_post_i <- Sigma_post_i[index, ]
     
-    # Create a data frame for ggplot
     df <- data.frame(value = c(sigma_prior_i, sigma_post_i),
                      group = rep(c("Prior", "Post"), each = length(sigma_prior_i)))
     
-    # Create the density plot
     pp <- ggplot(df, aes(x = value, fill = group)) +
       geom_density(alpha = 0.4) +
       labs(x = paste("sigma_",i,j), y = "Density", 
@@ -558,15 +549,53 @@ for (i in 1:p){
       xlim(min(sigma_post_i), max(sigma_post_i)) +
       theme_minimal() +
       theme(legend.position = "none")
-    
-    # Add the plot to the list
     plots[[index]] <- pp
   }
 }
-# Print the plots
 grid.arrange(grobs = plots, nrow = 5)
 
 
 #####################################
 # Choose best value
 ####################################
+## grid
+NGP_ori_range <- range(data_ori$NGP)
+MHG_ori_range <- range(data_ori$MHG)
+
+NGP_grid <- seq(0, 1, length.out = 100)
+MHG_grid <- seq(0, 1, length.out = 100)
+# weak informative prior
+pred_w <- data.frame()
+for (i in 1:m){
+  print(i)
+  beta_w <- bayes_estimate_w[i, ]
+  for (j in 1:100){
+    for (k in 1:100){
+      pred <- beta_w$beta_0 + beta_w$beta_NGP * NGP_grid[j] + beta_w$beta_MHG * MHG_grid[k] + beta_w$beta_NGP_MHG * NGP_grid[j] * MHG_grid[k] + beta_w$beta_MHG2 * MHG_grid[k]^2
+      pred_w <- rbind(pred_w, data.frame(NGP = NGP_grid[j], MHG = MHG_grid[k], prediction = pred))
+    }
+  }
+}
+head(pred_w)
+pred_w[which.max(pred_w$prediction),]
+# Find the row with the maximum prediction
+max_pred_row <- pred_w[which.max(pred_w$prediction), ]
+
+# Print the NGP and MHG for this row
+max_pred_row$NGP
+max_pred_row$MHG
+max_index <- which.max(mean_yield$yield)
+density_max <- mean_yield$density[max_index]
+cat(" x max maximizes expeceted yield is ", density_max)
+
+# informative prior
+pred_i <- data.frame()
+for (i in 1:m){
+  beta_i <- bayes_estimate_i[i, ]
+  for (j in 1:100){
+    for (k in 1:100){
+      pred <- beta_i$beta_0 + beta_i$beta_NGP * NGP_grid[j] + beta_i$beta_MHG * MHG_grid[k] + beta_i$beta_NGP_MHG * NGP_grid[j] * MHG_grid[k] + beta_i$beta_MHG2 * MHG_grid[k]^2
+      pred_i <- rbind(pred_i, data.frame(cultivar = i, NGP = NGP_grid[j], MHG = MHG_grid[k], prediction = pred))
+    }
+  }
+}
