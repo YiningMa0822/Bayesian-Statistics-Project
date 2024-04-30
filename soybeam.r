@@ -55,7 +55,9 @@ sigma2
 
 # plot OLS 
 slice_pred_plot(data, ols_estimate, slice = "NGP", method = "OLS")
+# ggsave("my_plot.png", slice_pred_plot(data, ols_estimate, slice = "NGP", method = "OLS"))
 slice_pred_plot(data, ols_estimate, slice = "MHG", method = "OLS")
+ggsave("2.3OLS_M.png", slice_pred_plot(data, ols_estimate, slice = "MHG", method = "OLS"))
 
 ########################
 # Bayesian
@@ -85,8 +87,8 @@ nu0_w <- 10
 sigma02_w <- sigma2
 
 ## starting values
-mu_w <- theta
-S_w <- Sigma
+mu_w <- c(rep(0, p))
+S_w <- diag(p)
 beta1_w <- ols_estimate[ , "beta_0"]
 beta2_w <- ols_estimate[ , "beta_NGP"]
 beta3_w <- ols_estimate[ , "beta_MHG"]
@@ -242,8 +244,8 @@ nu0_i <- 2
 sigma02_i <- sigma2
 
 # initial points
-mu_i <- c(rep(0, p))
-S_i <- diag(p)
+mu_i <- theta
+S_i <- Sigma
 beta1_i <- ols_estimate[ , "beta_0"]
 beta2_i <- ols_estimate[ , "beta_NGP"]
 beta3_i <- ols_estimate[ , "beta_MHG"]
@@ -416,6 +418,7 @@ for (i in 1:p) {
 }
 theta_ci_w
 grid.arrange(grobs = theta_w_plots, nrow=5)
+# ggsave("6.1theta_w.png", grid.arrange(grobs = theta_w_plots, nrow=5))
 ## informative prior
 theta_ci_i <- data.frame() # 95 CI
 theta_prior_i <- mvrnorm(NN, mu0_i, Gamma0_i)
@@ -438,7 +441,7 @@ for (i in 1:5) {
 }
 theta_ci_i
 grid.arrange(grobs = theta_i_plots, nrow=5)
-
+ggsave("6.2theta_i.png", grid.arrange(grobs = theta_i_plots, nrow=5))
 
 # Comparison of prior and posterior: sigma2
 sigma2_prior_w <- 1/ rgamma(NN, nu0_w/2, nu0_w * sigma02_w / 2)
@@ -501,7 +504,8 @@ for (i in 1:NN) {
 ## posterior
 Sigma_post <- SIGMA_w
 
-## plot
+## plot + CI
+SIGMA_w_ci <- data.frame()
 plots <- list()
 p <- 5
 for (i in 1:p){
@@ -522,10 +526,17 @@ for (i in 1:p){
       theme(legend.position = "none")
     
     plots[[index]] <- pp
+
+    ci_w <- c(quantile(sigma_post, 0.025), quantile(sigma_post, 0.975))
+    SIGMA_w_ci <- rbind(SIGMA_w_ci, data.frame(
+      row = index,
+      lb = ci_w[1],
+      ub = ci_w[2]
+    ))
   }
 }
 grid.arrange(grobs = plots, nrow = 5)
-
+SIGMA_w_ci
 ## informative
 Sigma_prior_i <- NULL
 for (i in 1:NN) {
@@ -604,7 +615,26 @@ ggplot(pred_w, aes(x = NGP_ori, y = MHG_ori, z = predict_mean_ori, fill = predic
   theme_minimal()
 ## Find the row with the maximum prediction
 pred_w[which.max(pred_w$predict_mean),]
-
+## 95 CI
+max_pred_w_ci <- data.frame()
+# NGP_max <- pred_w[which.max(pred_w$predict_mean), "NGP"]
+NGP_max <- 1
+MHG_max <- 0
+for (i in 1:m){
+  beta_w <- bayes_estimate_w[i, ]
+  max_pred <- beta_w$beta_0 + beta_w$beta_NGP * NGP_max + beta_w$beta_MHG * MHG_max + beta_w$beta_NGP_MHG * NGP_max * MHG_max + beta_w$beta_MHG2 * MHG_max^2
+  max_pred_ori <- max_pred * (GY_ori_range[2] - GY_ori_range[1]) + GY_ori_range[1]
+  max_pred_w_ci <- rbind(max_pred_w_ci, data.frame(
+    group = i,
+    predict = max_pred_ori
+  ))
+}
+quantile(max_pred_w_ci$predict, probs = c(0.4, 0.6))
+mean(max_pred_w_ci$predict)
+ggplot()+
+  geom_density(data = max_pred_w_ci, aes(x = predict), fill = "blue", alpha = 0.5) +
+  labs(x = "Predict", y = "Density", title = "Predict Density at Maximum Point (weak informative prior)") +
+  theme_minimal()
 # informative prior
 pred_i <- data.frame()
 for (j in 1:100){
