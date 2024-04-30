@@ -57,7 +57,7 @@ sigma2
 slice_pred_plot(data, ols_estimate, slice = "NGP", method = "OLS")
 # ggsave("my_plot.png", slice_pred_plot(data, ols_estimate, slice = "NGP", method = "OLS"))
 slice_pred_plot(data, ols_estimate, slice = "MHG", method = "OLS")
-ggsave("2.3OLS_M.png", slice_pred_plot(data, ols_estimate, slice = "MHG", method = "OLS"))
+# ggsave("2.3OLS_M.png", slice_pred_plot(data, ols_estimate, slice = "MHG", method = "OLS"))
 
 ########################
 # Bayesian
@@ -177,40 +177,50 @@ bayes_estimate_w <- data.frame(
 bayes_estimate_w
 
 # plot for bayes_estimate_w
-slice_pred_plot(data, bayes_estimate_w, slice = "NGP", method = "Bayes(Wwak Informative Prior)")
-slice_pred_plot(data, bayes_estimate_w, slice = "MHG", method = "Bayes(Wwak Informative Prior)")
+slice_pred_plot(data, bayes_estimate_w, slice = "NGP", method = "Bayes(weak Informative Prior)")
+ggsave("4.1NGP_w.png", slice_pred_plot(data, bayes_estimate_w, slice = "NGP", method = "Bayes(weak Informative Prior)"))
+slice_pred_plot(data, bayes_estimate_w, slice = "MHG", method = "Bayes(weak Informative Prior)")
+ggsave("4.2MHG_w.png", slice_pred_plot(data, bayes_estimate_w, slice = "MHG", method = "Bayes(weak Informative Prior)"))
 
 #-- Diagnose
 ## trace plot & ESS
 # theta
 ess_mu_w <- numeric(p)
+png("4.1theta_w.png")
 par(mfrow=c(2,3))
 for (i in 1:5){
-  plot(MU_w[i,], type="l", ylab=paste("mu_",i), xlab="iteration")
+  plot(MU_w[i,], type="l", ylab=paste("mu_",i), xlab="iteration", main = paste("Traceplot of theta_", i))
   ess_mu_w[i] <- effectiveSize(MU_w[i,])
 }
+dev.off()
 ess_mu_w
 # sigma
+png("4.1sigma2_w.png")
 par(mfrow=c(1,1))
-plot(S2_w, type="l", ylab="sigma2", xlab="iteration")
+plot(S2_w, type="l", ylab="sigma2", xlab="iteration", main = "Traceplot of sigma2")
+dev.off()
 effectiveSize(S2_w)
 # Sigma
 ess_Sigma_w <- numeric(p^2)
-par(mfrow=c(5,5))
+png("4.1Sigma_w.png", width = 800, height = 800)
+par(mfrow=c(5,5), pin = c(1.5, 1.5), mar = c(2, 2, 2, 2))
 for (i in 1:25){
   plot(SIGMA_w[i,], type="l", ylab=paste("Sigma_",i), xlab="iteration")
   ess_Sigma_w[i] <- effectiveSize(SIGMA_w[i,])
 }
+dev.off()
 ess_Sigma_w
 # beta (shoule have 40 plots, just show the first 3)
-par(mfrow=c(5,3))
+png("4.1beta_w.png", width = 800, height = 800)
+par(mfrow=c(5,3), pin = c(1.5, 1.5), mar = c(2, 2, 2, 2))
 for(i in 1:3){
-  plot(BETA1_w[i,], type="l", ylab=paste("beta1_",i), xlab="iteration")
-  plot(BETA2_w[i,], type="l", ylab=paste("beta2_",i), xlab="iteration")
-  plot(BETA3_w[i,], type="l", ylab=paste("beta3_",i), xlab="iteration")
-  plot(BETA4_w[i,], type="l", ylab=paste("beta4_",i), xlab="iteration")
-  plot(BETA5_w[i,], type="l", ylab=paste("beta5_",i), xlab="iteration")
+  plot(BETA1_w[i,], type="l", ylab=paste("beta1_",i), xlab="iteration", main = paste("Traceplot of beta1_", i))
+  plot(BETA2_w[i,], type="l", ylab=paste("beta2_",i), xlab="iteration", main = paste("Traceplot of beta2_", i))
+  plot(BETA3_w[i,], type="l", ylab=paste("beta3_",i), xlab="iteration",  main = paste("Traceplot of beta3_", i))
+  plot(BETA4_w[i,], type="l", ylab=paste("beta4_",i), xlab="iteration",  main = paste("Traceplot of beta4_", i))
+  plot(BETA5_w[i,], type="l", ylab=paste("beta5_",i), xlab="iteration",  main = paste("Traceplot of beta5_", i))
 }
+dev.off()
 ess_beta1_w <- numeric(m)
 ess_beta2_w <- numeric(m)
 ess_beta3_w <- numeric(m)
@@ -334,40 +344,52 @@ bayes_estimate_i <- data.frame(
 bayes_estimate_i
 
 # plot for bayes_estimate_i
-slice_pred_plot(data, bayes_estimate_i, slice = "NGP", method = "Bayes(Wwak Informative Prior)")
-slice_pred_plot(data, bayes_estimate_i, slice = "MHG", method = "Bayes(Wwak Informative Prior)")
+png("4.2NGP_i.png")
+slice_pred_plot(data, bayes_estimate_i, slice = "NGP", method = "Bayes(Unbiased Informative Prior)")
+dev.off()
+png("4.2MHG_i.png")
+slice_pred_plot(data, bayes_estimate_i, slice = "MHG", method = "Bayes(Unbiased Informative Prior)")
+dev.off()
 
 #-- Diagnose
 ## trace plot & ESS
 # theta
 ess_mu_i <- numeric(p)
+png("4.2theta_i.png", width = 800, height = 800)
 par(mfrow=c(2,3))
 for (i in 1:5){
-  plot(MU_i[i,], type="l", ylab=paste("mu_",i), xlab="iteration")
+  plot(MU_i[i,], type="l", ylab=paste("mu_",i), xlab="iteration", main = paste("Traceplot of theta_", i))
   ess_mu_i[i] <- effectiveSize(MU_i[i,])
 }
+dev.off()
 ess_mu_i
 # sigma
+png("4.2sigma2_i.png")
 par(mfrow=c(1,1))
-plot(S2_i, type="l", ylab="sigma2", xlab="iteration")
+plot(S2_i, type="l", ylab="sigma2", xlab="iteration", main = "Traceplot of sigma2")
+dev.off()
 effectiveSize(S2_i)
 # Sigma
 ess_Sigma_i <- numeric(p^2)
-par(mfrow=c(5,5))
+png("4.2Sigma_i.png", width = 800, height = 800)
+par(mfrow=c(5,5), pin = c(1.5, 1.5), mar = c(2, 2, 2, 2) )
 for (i in 1:25){
-  plot(SIGMA_i[i,], type="l", ylab=paste("Sigma_",i), xlab="iteration")
+  plot(SIGMA_i[i,], type="l", ylab=paste("Sigma_",i), xlab="iteration", main = paste("Traceplot of Sigma_", i))
   ess_Sigma_i[i] <- effectiveSize(SIGMA_i[i,])
 }
+dev.off()
 ess_Sigma_i
 # beta (shoule have 40 plots, just show the first 3)
-par(mfrow=c(5,3))
+png("4.2beta_i.png", width = 800, height = 800)
+par(mfrow=c(5,3), pin = c(1.5, 1.5), mar = c(2, 2, 2, 2) )
 for(i in 1:3){
-  plot(BETA1_i[i,], type="l", ylab=paste("beta1_",i), xlab="iteration")
-  plot(BETA2_i[i,], type="l", ylab=paste("beta2_",i), xlab="iteration")
-  plot(BETA3_i[i,], type="l", ylab=paste("beta3_",i), xlab="iteration")
-  plot(BETA4_i[i,], type="l", ylab=paste("beta4_",i), xlab="iteration")
-  plot(BETA5_i[i,], type="l", ylab=paste("beta5_",i), xlab="iteration")
+  plot(BETA1_i[i,], type="l", ylab=paste("beta1_",i), xlab="iteration", main = paste("Traceplot of beta1_", i))
+  plot(BETA2_i[i,], type="l", ylab=paste("beta2_",i), xlab="iteration", main = paste("Traceplot of beta2_", i))
+  plot(BETA3_i[i,], type="l", ylab=paste("beta3_",i), xlab="iteration" , main = paste("Traceplot of beta3_", i))
+  plot(BETA4_i[i,], type="l", ylab=paste("beta4_",i), xlab="iteration", main = paste("Traceplot of beta4_", i))
+  plot(BETA5_i[i,], type="l", ylab=paste("beta5_",i), xlab="iteration", main = paste("Traceplot of beta5_", i))
 }
+dev.off()
 ess_beta1_i <- numeric(m)
 ess_beta2_i <- numeric(m)
 ess_beta3_i <- numeric(m)
@@ -397,7 +419,7 @@ library(ggplot2)
 library(gridExtra)
 # Comparison of prior and posterior: theta
 ## weak informative prior
-theta_ci_w <- data.frame() # 95 CI
+theta_ci_w <- data.frame() # 95 CI + mean
 theta_prior_w <- mvrnorm(NN, mu0_w, Gamma0_w)
 theta_w_plots <- list()
 for (i in 1:p) {
@@ -413,14 +435,16 @@ for (i in 1:p) {
   theta_ci_w <- rbind(theta_ci_w, data.frame(
     row = i,
     lb = ci[1],
-    ub = ci[2]
+    med = median(theta_post_w_i),
+    ub = ci[2],
+    mean = mean(theta_post_w_i)
   ))
 }
 theta_ci_w
 grid.arrange(grobs = theta_w_plots, nrow=5)
 # ggsave("6.1theta_w.png", grid.arrange(grobs = theta_w_plots, nrow=5))
 ## informative prior
-theta_ci_i <- data.frame() # 95 CI
+theta_ci_i <- data.frame() # 95 CI + mean
 theta_prior_i <- mvrnorm(NN, mu0_i, Gamma0_i)
 theta_i_plots <- list()
 for (i in 1:5) {
@@ -436,7 +460,9 @@ for (i in 1:5) {
   theta_ci_i <- rbind(theta_ci_i, data.frame(
     row = i,
     lb = ci[1],
-    ub = ci[2]
+    med = median(theta_post_i_i),
+    ub = ci[2],
+    mean = mean(theta_post_i_i)
   ))
 }
 theta_ci_i
@@ -457,15 +483,15 @@ p2 <- ggplot() +
   xlim(min(S2_i), max(S2_i)+0.001) +
   labs(x = "sigma2", y = "Density", title = "informative prior: Sigma2")
 grid.arrange(p1, p2, nrow=2)
-
+ggsave("5.1sigma2.png", grid.arrange(p1, p2, nrow=2))
 # Comparison of prior and posterior: Beta
 ############# CI overlap
 beta_ci_plot <- function(beta_w, beta_i, title){
-  ci_beta_w <- data.frame()
-  ci_beta_i <- data.frame()
-  for (i in 1:m){
-    ci_w <- c(quantile(beta_w[i, ], 0.025), quantile(beta_w[i, ], 0.975))
-    ci_i <- c(quantile(beta_i[i, ], 0.025), quantile(beta_i[i, ], 0.975))
+  ci_beta_w <- NULL
+  ci_beta_i <- NULL
+  for(i in 1:m){
+    ci_w <- HPDinterval(as.mcmc(beta_w[i,]))
+    ci_i <- HPDinterval(as.mcmc(beta_i[i,]))
     ci_beta_w <- rbind(ci_beta_w, data.frame(
       group = i,
       lb = ci_w[1],
@@ -477,20 +503,31 @@ beta_ci_plot <- function(beta_w, beta_i, title){
       ub = ci_i[2]
     ))}
   ggplot() +
-    geom_rect(data = ci_beta_w, aes(xmin = group+0.05 , xmax = group + 0.95, ymin = lb, ymax = ub), fill = "blue", alpha = 0.7) +
-    geom_rect(data = ci_beta_i, aes(xmin = group+0.05, xmax = group + 0.95, ymin = lb, ymax = ub), fill = "yellow", alpha = 0.6) +
+    geom_rect(data = ci_beta_w, aes(xmin = group+0.05 , xmax = group + 0.95, ymin = lb, ymax = ub, fill = "Weak"), alpha = 0.7) +
+    geom_rect(data = ci_beta_i, aes(xmin = group+0.05, xmax = group + 0.95, ymin = lb, ymax = ub, fill = "Unbiased"), alpha = 0.6) +
     geom_hline(yintercept = mean(beta_w), linetype = "dashed", color = "blue", size = 1) +
     geom_hline(yintercept = mean(beta_i), linetype = "dashed", color = "yellow", size = 1) +
     labs(x = "Group", y = "Interval") +
     ggtitle(title) +
+    scale_fill_manual(values = c("Weak" = "blue", "Unbiased" = "yellow"), name = "Method") +
     theme_minimal()
 }
 
+png("5.1beta1.png", width = 800, height = 800)
 beta_ci_plot(BETA1_w, BETA1_i, "Comparison 95% Posterior Interval of Beta_1")
+dev.off()
+png("5.1beta2.png", width = 800, height = 800)
 beta_ci_plot(BETA2_w, BETA2_i, "Comparison 95% Posterior Interval of Beta_2")
+dev.off()
+png("5.1beta3.png", width = 800, height = 800)
 beta_ci_plot(BETA3_w, BETA3_i, "Comparison 95% Posterior Interval of Beta_3")
+dev.off()
+png("5.1beta4.png", width = 800, height = 800)
 beta_ci_plot(BETA4_w, BETA4_i, "Comparison 95% Posterior Interval of Beta_4")
+dev.off()
+png("5.1beta5.png", width = 800, height = 800)
 beta_ci_plot(BETA5_w, BETA5_i, "Comparison 95% Posterior Interval of Beta_5")
+dev.off()
 ## 结论：就算prior不一样，结果类似： vary
 
 # Comparison of prior and posterior: SIGMA
@@ -535,7 +572,9 @@ for (i in 1:p){
     ))
   }
 }
+png("5.1sigma_diag_w.png", width = 800, height = 800)
 grid.arrange(grobs = plots, nrow = 5)
+dev.off()
 SIGMA_w_ci
 ## informative
 Sigma_prior_i <- NULL
@@ -545,7 +584,8 @@ for (i in 1:NN) {
 }
 ## posterior
 Sigma_post_i <- SIGMA_i
-## plot
+## plot + CI
+SIGMA_i_ci <- data.frame()
 plots <- list()
 p <- 5
 for (i in 1:p){
@@ -565,9 +605,20 @@ for (i in 1:p){
       theme_minimal() +
       theme(legend.position = "none")
     plots[[index]] <- pp
+
+    ci_i <- c(quantile(sigma_post_i, 0.025), quantile(sigma_post_i, 0.975))
+    SIGMA_i_ci <- rbind(SIGMA_i_ci, data.frame(
+      row = index,
+      lb = ci_i[1],
+      ub = ci_i[2]
+    ))
   }
 }
+png("5.1sigma_diag_i.png", width = 800, height = 800)
 grid.arrange(grobs = plots, nrow = 5)
+dev.off()
+
+SIGMA_i_ci
 
 
 #####################################
@@ -606,6 +657,7 @@ par(mfrow = c(1, 1))
 blue_palette <- colorRampPalette(c("lightblue", "darkblue")) # color palette
 with(pred_w, plot3d(NGP, MHG, predict_mean, xlab = "NGP", ylab = "MHG", zlab = "Predict Mean", col = blue_palette(length(predict_mean)), alpha = 0.5))
 ## plot: contour + heatmap
+png("5.2pred_w.png", width = 800, height = 800)
 ggplot(pred_w, aes(x = NGP_ori, y = MHG_ori, z = predict_mean_ori, fill = predict_mean_ori)) +
   geom_tile() +
   geom_contour(aes(colour = after_stat(level)), bins = 10) +
@@ -613,6 +665,7 @@ ggplot(pred_w, aes(x = NGP_ori, y = MHG_ori, z = predict_mean_ori, fill = predic
   labs(x = "NGP", y = "MHG", fill = "Predict Mean") +
   ggtitle("Predict Mean over NGP and MHG (weak informative prior)") +
   theme_minimal()
+dev.off()
 ## Find the row with the maximum prediction
 pred_w[which.max(pred_w$predict_mean),]
 ## 95 CI
@@ -657,6 +710,7 @@ pred_i
 ## 3D plot
 with(pred_i, plot3d(NGP, MHG, predict_mean, xlab = "NGP", ylab = "MHG", zlab = "Predict Mean", col = blue_palette(length(predict_mean)), alpha = 0.5))
 ## plot: contour + heatmap
+png("5.2pred_i.png", width = 800, height = 800)
 ggplot(pred_i, aes(x = NGP_ori, y = MHG_ori, z = predict_mean_ori, fill = predict_mean_ori)) +
   geom_tile() +
   geom_contour(aes(colour = after_stat(level)), bins = 10) +
@@ -664,5 +718,6 @@ ggplot(pred_i, aes(x = NGP_ori, y = MHG_ori, z = predict_mean_ori, fill = predic
   labs(x = "NGP", y = "MHG", fill = "Predict Mean") +
   ggtitle("Predict Mean over NGP and MHG (informative prior)") +
   theme_minimal()
+dev.off()
 ## Find the row with the maximum prediction
 pred_i[which.max(pred_i$predict_mean),]
